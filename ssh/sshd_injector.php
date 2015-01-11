@@ -3,24 +3,22 @@
 <?php
 
 if(isset($_POST["sshd"]) || isset($_POST["sshkeygen"]) || isset($_POST["workspace"]))
-{
-    //echo "<html><head><meta charset=\"utf-8\"/><title>Reload</title><script>location.reload(true);</script></head><body></body></html>";
-    
+{    
     $script_content = file_get_contents(basename(__FILE__));
 
-    if(isset($_POST["sshd"]))
+    if(isset($_POST["sshd"]) && @is_file($_POST["sshd"]))
     {
-        $script_content = preg_replace('#^\\$sshd_bin = "*.";$#', '$sshd_bin = "'.$_POST["sshd"].'";', $script_content);
+        $script_content = preg_replace('#\$sshd_bin = "[^"]+";#', '$sshd_bin = "'.$_POST["sshd"].'";', $script_content);
     }
 
-    if(isset($_POST["sshkeygen"]))
+    if(isset($_POST["sshkeygen"]) && @is_file($_POST["sshkeygen"]))
     {
-        $script_content = preg_replace('#^\\$ssh_keygen_bin = "*.";$#', '$ssh_keygen_bin = "'.$_POST["sshkeygen"].'";', $script_content);
+        $script_content = preg_replace('#\$ssh_keygen_bin = "[^"]";#', '$ssh_keygen_bin = "'.$_POST["sshkeygen"].'";', $script_content);
     }
 
-    if(isset($_POST["workspace"]))
+    if(isset($_POST["workspace"]) && @is_dir($_POST["workspace"]))
     {
-        $script_content = preg_replace('#^\\$workspace = "*.";$#', '$workspace = "'.$_POST["workspace"].'";', $script_content);
+        $script_content = preg_replace('#\$workspace = "[^"]+";#', '$workspace = "'.$_POST["workspace"].'";', $script_content);
     }
 
     file_put_contents(basename(__FILE__), $script_content);
@@ -30,7 +28,6 @@ if(isset($_POST["sshd"]) || isset($_POST["sshkeygen"]) || isset($_POST["workspac
     exit(0);
 }
 
-//todo: escape variable value, reload page and interrupt script
 $sshd_bin = "sshd";
 $ssh_keygen_bin = "ssh-keygen";
 $workspace = ".";
