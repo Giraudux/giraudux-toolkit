@@ -6,24 +6,29 @@ if(isset($_POST["sshd"]) || isset($_POST["sshkeygen"]) || isset($_POST["workspac
 {    
     $script_content = file_get_contents(basename(__FILE__));
 
-    if(isset($_POST["sshd"]))
+    if(isset($_POST["sshd"]) && (strpos(isset($_POST["sshd"]), "\"") === FALSE))
     {
         $script_content = preg_replace('#\$sshd_bin = "[^"]+";#', '$sshd_bin = "'.$_POST["sshd"].'";', $script_content);
     }
 
-    if(isset($_POST["sshkeygen"]))
+    if(isset($_POST["sshkeygen"]) && (strpos(isset($_POST["sshkeygen"]), "\"") === FALSE))
     {
         $script_content = preg_replace('#\$ssh_keygen_bin = "[^"]+";#', '$ssh_keygen_bin = "'.$_POST["sshkeygen"].'";', $script_content);
     }
 
-    if(isset($_POST["workspace"]))
+    if(isset($_POST["workspace"]) && (strpos(isset($_POST["workspace"]), "\"") === FALSE))
     {
         $script_content = preg_replace('#\$workspace = "[^"]+";#', '$workspace = "'.$_POST["workspace"].'";', $script_content);
     }
 
-    if(isset($_POST["ldlibrarypath"]))
+    if(isset($_POST["cmdprefix"]) && (strpos(isset($_POST["cmdprefix"]), "\"") === FALSE))
     {
-        $script_content = preg_replace('#\$ld_library_path = "[^"]+";#', '$ld_library_path = "'.$_POST["ldlibrarypath"].'";', $script_content);
+        $script_content = preg_replace('#\$cmd_prefix = "[^"]+";#', '$cmd_prefix = "'.$_POST["cmdprefix"].'";', $script_content);
+    }
+
+    if(isset($_POST["cmdpostfix"]) && (strpos(isset($_POST["cmdpostfix"]), "\"") === FALSE))
+    {
+        $script_content = preg_replace('#\$cmd_postfix = "[^"]+";#', '$cmd_postfix = "'.$_POST["cmdpostfix"].'";', $script_content);
     }
 
     file_put_contents(basename(__FILE__), $script_content);
@@ -36,7 +41,8 @@ if(isset($_POST["sshd"]) || isset($_POST["sshkeygen"]) || isset($_POST["workspac
 $sshd_bin = "sshd";
 $ssh_keygen_bin = "ssh-keygen";
 $workspace = ".";
-$ld_library_path = ".";
+$cmd_prefix = "LD_LIBRARY_PATH=. ";
+$cmd_postfix = " 2>&1";
 
 $workspace = realpath($workspace);
 if($workspace === FALSE)
@@ -49,9 +55,6 @@ if($path === FALSE)
 {
     $path = $workspace;
 }
-
-$cmd_prefix = "LD_LIBRARY_PATH=$ld_library_path ";
-$cmd_postfix = " 2>&1";
 
 $sshd_path = $workspace."/.sshd";
 $sshd_authorized_keys = $sshd_path."/authorized_keys";
@@ -70,7 +73,9 @@ $sshd_default_config_content =
 HostKey $sshd_hostkey
 UsePrivilegeSeparation no
 PidFile $sshd_pidfile
-AuthorizedKeysCommand $sshd_authorized_keys";
+PasswordAuthentication no
+PubkeyAuthentication yes
+AuthorizedKeysFile $sshd_authorized_keys";
 
 $file_exist = "present";
 $not_file_exist = "absent";
@@ -102,7 +107,9 @@ function prepare_dir($dir)
             <br>
             <?php echo htmlentities("PATH = ".$path); ?>
             <br>
-            <?php echo htmlentities("LD_LIBRARY_PATH = ".$ld_library_path); ?>
+            <?php echo htmlentities("command prefix = ".$cmd_prefix); ?>
+            <br>
+            <?php echo htmlentities("command postfix = ".$cmd_postfix); ?>
             <br>
             <?php echo htmlentities("workspace = ".$workspace); ?>
             <br>
@@ -187,7 +194,7 @@ function prepare_dir($dir)
 <?php
                 if(isset($_POST["clear"]) && ($_POST["clear"] == "checked"))
                 {
-                    $clear_cmd = "rm -rf $sshd_path 2>&1";
+                    $clear_cmd = "rm -rf $sshd_path".$cmd_postfix;
                     echo "<p>";
                     echo htmlentities("$ ".$clear_cmd)."<br>";
                     echo nl2br(htmlentities(shell_exec($clear_cmd)));
@@ -211,7 +218,7 @@ function prepare_dir($dir)
 <?php
                 if(isset($_POST["start"]) && ($_POST["start"] == "checked"))
                 {
-                    $start_cmd = "$sshd_bin -f $sshd_config 2>&1";
+                    $start_cmd = $cmd_prefix."$sshd_bin -f $sshd_config".$cmd_postfix;
                     echo "<p>";
                     echo htmlentities("$ ".$start_cmd)."<br>";
                     echo nl2br(htmlentities(shell_exec($start_cmd)));
@@ -223,7 +230,8 @@ function prepare_dir($dir)
 <?php
                 if(isset($_POST["keygen"]) && ($_POST["keygen"] == "checked"))
                 {
-                    $keygen_cmd = "$ssh_keygen_bin -f $sshd_hostkey -N '' 2>&1";
+                    prepare_dir($sshd_path);
+                    $keygen_cmd = $cmd_prefix."$ssh_keygen_bin -f $sshd_hostkey -N ''".$cmd_postfix;
                     echo "<p>";
                     echo htmlentities("$ ".$keygen_cmd)."<br>";
                     echo nl2br(htmlentities(shell_exec($keygen_cmd)));
@@ -261,7 +269,9 @@ function prepare_dir($dir)
                 <br>
                 <label>workspace = </label><input type="text" name="workspace" value="<?php echo $workspace; ?>" required>
                 <br>
-                <label>LD_LIBRARY_PATH = </label><input type="text" name="ldlibrarypath" value="<?php echo $ld_library_path; ?>" required>
+                <label>command prefix = </label><input type="text" name="cmdprefix" value="<?php echo $cmd_prefix; ?>" required>
+                <br>
+                <label>command postfix = </label><input type="text" name="cmdpostfix" value="<?php echo $cmd_postfix; ?>" required>
                 <br>
                 <input type="submit" value="Update sshd ssh-keygen workspace" class="allwidth">
             </fieldset>
