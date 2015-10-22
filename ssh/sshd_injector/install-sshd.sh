@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -x
+set -e
 
 #note: compile openssh with LDFLAGS="-static"
 
@@ -9,16 +9,38 @@ kernel=`uname -s`
 machine=`uname -m`
 port="2222"
 
-if [ "$#" -ge "1" ]
-then
-if [ "$1" -ge "1024" ]
-then
-if [ "$1" -lt "65536" ]
-then
-  port="$1"
-fi
-fi
-fi
+while getopts "i:m:p:s:w:x" opt
+do
+  case "$opt" in
+    i)
+      install_dir="$OPTARG"
+      ;;
+    m)
+      machine="$OPTARG"
+      ;;
+    p)
+      if [ "$OPTARG" -ge "1024" ]
+      then
+        if [ "$OPTARG" -lt "65536" ]
+        then
+          port="$OPTARG"
+        fi
+      fi
+      ;;
+    s)
+      kernel="$OPTARG"
+      ;;
+    w)
+      working_dir="$OPTARG"
+      ;;
+    x)
+      set -x
+      ;;
+    *)
+      echo "Usage : [-i install_dir] [-m machine] [-p port] [-s kernel] [-w working_dir] [-x]"
+  esac
+done
+
 mkdir -p "$install_dir"
 cp "$working_dir/bin/sshd-$kernel-$machine" "$install_dir/sshd"
 cp "$working_dir/bin/ssh-keygen-$kernel-$machine" "$install_dir/ssh-keygen"
@@ -30,4 +52,3 @@ echo "PidFile $install_dir/sshd.pid" >> "$install_dir/sshd_config"
 echo "AuthorizedKeysFile $install_dir/authorized_keys" >> "$install_dir/sshd_config"
 "$install_dir/ssh-keygen" -N "" -f "$install_dir/ssh_host_key"
 "$install_dir/sshd" -f "$install_dir/sshd_config"
-echo "connect to: $USER@$HOSTNAME"
