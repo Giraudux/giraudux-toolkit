@@ -1,8 +1,7 @@
 <?php
 
-$hash_algo = "sha1";
+$hash_algo = "sha512";
 $sqlite3_filename = "dfs.sqlite3";
-$errorlog_filename = "dfs.log";
 
 try {
   if(isset($_POST["data"])) {
@@ -17,7 +16,7 @@ try {
     }
   }
 } catch(Exception $e) {
-  //error_log($e, 3, $errorlog_filename);
+  //echo $e;
 }
 
 if(isset($stmt)) {
