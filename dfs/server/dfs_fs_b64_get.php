@@ -5,8 +5,9 @@ $fs_filename = "data";
 
 try {
   if(isset($_GET["id"])) {
-    if(is_file($fs_filename."/".$_GET["id"])) {
-      $result = file_get_contents($fs_filename."/".$_GET["id"]);
+    $filename = $fs_filename."/".$_GET["id"];
+    if(is_file($filename)) {
+      $result = file_get_contents($filename);
       if($result !== false) {
         echo $result;
       }
