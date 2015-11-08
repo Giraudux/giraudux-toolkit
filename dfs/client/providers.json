@@ -1,0 +1,6 @@
+[
+  {
+    "protocol": "my protocol",
+    "meta": "my meta (not necessarily a string)"
+  }
+]
