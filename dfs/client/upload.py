@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, base64, hashlib, json, urllib
+import argparse, base64, hashlib, json, urllib.parse, urllib.request
 
 def upload_http_post_b64_sha512(block, meta):
   block_b64 = base64.urlsafe_b64encode(block)
@@ -10,8 +10,8 @@ def upload_http_post_b64_sha512(block, meta):
   request = urllib.request.Request(meta["post"])
   request.add_header("Content-Type", "application/x-www-form-urlencoded;charset=ascii")
   with urllib.request.urlopen(request, data) as reply:
-    if block_b64_sha512 == reply:
-      return {"protocol": "http_get_b64_sha512", "hash": block_b64_sha512, "get": meta["get"]}
+    if block_b64_sha512 == reply.read().decode():
+      return {"protocol": "http_get_b64_sha512", "hash": block_b64_sha512, "get": meta["get"]+"?id="+block_b64_sha512}
   raise Exception("Failure")
 
 def main():
@@ -35,16 +35,19 @@ def main():
     piece = dict()
     piece_providers = list()
     for provider in providers:
+      try:
         # use getattr(module, provider["protocol"])
         piece_providers.append(upload_http_post_b64_sha512(block, provider["meta"]))
+      except:
+        print()
     piece["size"] = len(block)
     piece["hash"] = hashlib.sha512(block).hexdigest()
     piece["providers"] = piece_providers
     pieces.append(piece)
     block = args.input.read(args.block)
   output["name"] = args.input.name
-  output["hash"] = hash.hexdigest()
   output["size"] = size
+  output["hash"] = hash.hexdigest()
   output["pieces"] = pieces
   json.dump(output, args.output)
   args.input.close()
