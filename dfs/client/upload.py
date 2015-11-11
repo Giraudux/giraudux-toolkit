@@ -2,17 +2,25 @@
 
 import argparse, base64, hashlib, json, urllib.parse, urllib.request
 
-def upload_http_post_b64_sha512(block, meta):
-  block_b64 = base64.urlsafe_b64encode(block)
-  block_b64_sha512 = hashlib.sha512(block_b64).hexdigest()
-  data = urllib.parse.urlencode({"data": block_b64})
-  data = data.encode("ascii")
-  request = urllib.request.Request(meta["post"])
-  request.add_header("Content-Type", "application/x-www-form-urlencoded;charset=ascii")
-  with urllib.request.urlopen(request, data) as reply:
-    if block_b64_sha512 == reply.read().decode():
-      return ("http_get_b64_sha512", {"hash": block_b64_sha512, "get": meta["get"]+"?id="+block_b64_sha512})
-  raise Exception()
+class Uploader:
+  def protocol():
+    raise Exception()
+  def upload(self, meta, block):
+    raise Exception()
+
+class HttpB64Sha512Uploader(Uploader):
+  def protocol():
+    return "http_b64_sha512"
+  def upload(self, meta, block):
+    block_b64 = base64.urlsafe_b64encode(block)
+    block_b64_sha512 = hashlib.sha512(block_b64).hexdigest()
+    data = urllib.parse.urlencode({"data": block_b64}).encode("ascii")
+    request = urllib.request.Request(meta["post"])
+    request.add_header("Content-Type", "application/x-www-form-urlencoded;charset=ascii")
+    with urllib.request.urlopen(request, data) as reply:
+      if block_b64_sha512 == reply.read().decode("ascii"):
+        return {"hash": block_b64_sha512, "get": meta["get"]+"?id="+block_b64_sha512}
+    raise Exception()
 
 def main():
   parser = argparse.ArgumentParser()
@@ -24,6 +32,8 @@ def main():
   args = parser.parse_args()
   providers = json.load(args.providers)
   args.providers.close()
+  uploaders = dict()
+  uploaders[HttpB64Sha512Uploader.protocol()] = HttpB64Sha512Uploader()
   size = 0
   meta = dict()
   pieces = list()
@@ -36,9 +46,8 @@ def main():
     piece_providers = list()
     for provider in providers:
       try:
-        # use getattr(module, provider["protocol"])
-        (protocol, protocol_meta) = upload_http_post_b64_sha512(block, provider["meta"])
-        piece_providers.append({"protocol": protocol, "meta": protocol_meta})
+        protocol_meta = uploaders[provider["protocol"]].upload(provider["meta"], block)
+        piece_providers.append({"protocol": provider["protocol"], "meta": protocol_meta})
       except:
         continue
     piece["size"] = len(block)

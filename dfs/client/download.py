@@ -2,13 +2,22 @@
 
 import argparse, base64, hashlib, json, urllib.request
 
-def download_http_get_b64_sha512(meta):
-  block_b64 = None
-  with urllib.request.urlopen(meta["get"]) as reply:
-    block_b64 = reply.read()
-  if hashlib.sha512(block_b64).hexdigest() == meta["hash"]:
-    return base64.urlsafe_b64decode(block_b64)
-  raise Exception()
+class Downloader:
+  def protocol():
+    raise Exception()
+  def download(self, meta):
+    raise Exception()
+
+class HttpB64Sha512Downloader(Downloader):
+  def protocol():
+    return "http_b64_sha512"
+  def download(self, meta):
+    block_b64 = None
+    with urllib.request.urlopen(meta["get"]) as reply:
+      block_b64 = reply.read()
+    if hashlib.sha512(block_b64).hexdigest() == meta["hash"]:
+      return base64.urlsafe_b64decode(block_b64)
+    raise Exception()
 
 def main():
   parser = argparse.ArgumentParser()
@@ -18,6 +27,8 @@ def main():
   parser.add_argument("-t", "--threads", default=8, type=int, required=False)
   args = parser.parse_args()
   meta = json.load(args.meta)
+  downloaders = dict()
+  downloaders[HttpB64Sha512Downloader.protocol()] = HttpB64Sha512Downloader()
   args.meta.close()
   size = 0
   file_sha512 = hashlib.sha512()
@@ -25,8 +36,7 @@ def main():
     block = None
     for provider in piece["providers"]:
       try:
-        # use getattr(module, provider["protocol"])
-        block = download_http_get_b64_sha512(provider["meta"])
+        block = downloaders[provider["protocol"]].download(provider["meta"])
       except:
         continue
       if len(block) == piece["size"] and hashlib.sha512(block).hexdigest() == piece["hash"]:
