@@ -12,7 +12,7 @@ def upload_http_post_b64_sha512(block, meta):
   with urllib.request.urlopen(request, data) as reply:
     if block_b64_sha512 == reply.read().decode():
       return ("http_get_b64_sha512", {"hash": block_b64_sha512, "get": meta["get"]+"?id="+block_b64_sha512})
-  raise Exception("Failure")
+  raise Exception()
 
 def main():
   parser = argparse.ArgumentParser()
@@ -40,7 +40,7 @@ def main():
         (protocol, protocol_meta) = upload_http_post_b64_sha512(block, provider["meta"])
         piece_providers.append({"protocol": protocol, "meta": protocol_meta})
       except:
-        print()
+        continue
     piece["size"] = len(block)
     piece["hash"] = hashlib.sha512(block).hexdigest()
     piece["providers"] = piece_providers

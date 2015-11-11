@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
-import argparse, base64, hashlib, json, urllib.parse, urllib.request
+import argparse, base64, hashlib, json, urllib.request
 
 def download_http_get_b64_sha512(meta):
+  block_b64 = None
+  with urllib.request.urlopen(meta["get"]) as reply:
+    block_b64 = reply.read()
+  if hashlib.sha512(block_b64).hexdigest() == meta["hash"]:
+    return base64.urlsafe_b64decode(block_b64)
   raise Exception()
 
 def main():
@@ -23,11 +28,11 @@ def main():
         # use getattr(module, provider["protocol"])
         block = download_http_get_b64_sha512(provider["meta"])
       except:
-        block = None
         continue
       if len(block) == piece["size"] and hashlib.sha512(block).hexdigest() == piece["hash"]:
-        block = None
         break
+      else:
+        block = None
     size += len(block)
     file_sha512.update(block)
     if args.file.write(block) != len(block):
